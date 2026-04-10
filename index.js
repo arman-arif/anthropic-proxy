@@ -6,6 +6,7 @@ const baseUrl = process.env.ANTHROPIC_PROXY_BASE_URL || 'https://openrouter.ai/a
 const requiresApiKey = !process.env.ANTHROPIC_PROXY_BASE_URL
 const key = requiresApiKey ? process.env.OPENROUTER_API_KEY : null
 const proxyApiKey = process.env.PROXY_API_KEY || null
+const UNSAFE_SCHEMA_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 const model = 'google/gemini-2.0-pro-exp-02-05:free'
 const models = {
   reasoning: process.env.REASONING_MODEL || model,
@@ -128,13 +129,12 @@ fastify.post('/v1/messages', async (request, reply) => {
 
       // Recursively process all properties
       const result = {};
-      const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
       for (const key of Object.keys(schema)) {
-      if (UNSAFE_KEYS.has(key)) continue
+      if (UNSAFE_SCHEMA_KEYS.has(key)) continue
       if (key === 'properties' && typeof schema[key] === 'object') {
         result[key] = {};
         for (const propKey of Object.keys(schema[key])) {
-          if (UNSAFE_KEYS.has(propKey)) continue
+          if (UNSAFE_SCHEMA_KEYS.has(propKey)) continue
           result[key][propKey] = removeUriFormat(schema[key][propKey]);
         }
       } else if (key === 'items' && typeof schema[key] === 'object') {
